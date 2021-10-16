@@ -1,0 +1,95 @@
+---
+title: "mtb12"
+output: pdf_document
+---
+```{r variable importance, echo=TRUE}
+m12r<-read.csv("/Users/i Dolphin Online/Documents/12rv.csv")
+library(randomForest)
+m12rv<- randomForest(yield~ . ,data = m12r,importance = TRUE)
+library(caret)
+imp <- as.data.frame(varImp(m12rv))
+imp <- data.frame(overall = imp$Overall, names = rownames(imp))
+imp[order(imp$overall, decreasing = T),]
+
+```
+
+
+
+
+
+```{r correlation removed, echo=TRUE}
+m12c<-read.csv("/Users/i Dolphin Online/Documents/12c.csv")
+tmp <- cor(m12c)
+tmp[upper.tri(tmp)] <- 0
+diag(tmp) <- 0
+data.new <- m12c[,! apply(tmp,2,function(x) any(x > 0.8))]
+head(data.new)
+```
+
+
+```{r random forest, echo=TRUE}
+m12<-read.csv("/Users/i Dolphin Online/Documents/3.csv")
+ind <- sample(2, nrow(m12), replace = TRUE, prob = c(0.7 , 0.3))
+train12<-m12[ind==1,]
+test12<-m12[ind==2,]
+library(randomForest)
+rf <-randomForest(yield~.,data=train12,mtry=4)
+rf
+pred_values2 = predict(rf,test12)
+actual_values2 = test12$yield
+library(Metrics)
+metrics_rmse = rmse(actual_values2,pred_values2)
+print(metrics_rmse)
+```
+```{r}
+
+```
+```{r gbm, echo=TRUE}
+
+library(gbm)
+model_gbm<-gbm(formula = YIELD~ ., distribution = "gaussian", data = train12,
+n.trees = 500, n.minobsinnode = 3, shrinkage = 0.01, cv.folds = 10,bag.fraction = 0.5)
+pred_y <- predict.gbm(model_gbm,test12)
+plot(pred_y)
+mse <- mse(test12$YIELD,pred_y)
+print(mse)
+sqrt(mse)
+gbm.perf(model_gbm,method="cv")
+```
+```{r support vector machines, echo=TRUE}
+train12[-1]<-scale(train12[-1])
+test12[-1]<-scale(test12[-1])
+library(e1071)
+svmreg = svm(formula = yield~ .,
+data = train12)
+svmreg
+library(Metrics)
+y_pred = predict(svmreg, newdata = test12[,2:7])
+rmsesvm <- rmse(test12$yield,y_pred)
+rmsesvm
+plot(x=y_pred, y=test12$yield,
+     xlab='Predicted Values',
+     ylab='Actual Values',
+     main='Predicted vs. Actual Values')
+abline(a=0, b=1)
+```
+
+
+```{r}
+library(neuralnet)
+maxs <- apply(m12, 2, max)
+mins <- apply(m12, 2, min)
+scaled <- as.data.frame(scale(m12, center = mins,
+scale = maxs - mins))
+ind <- sample(2, nrow(m12), replace = TRUE, prob = c(0.7 , 0.3))
+train_<-scaled[ind==1,]
+test_<-scaled[ind==2,]
+nn <- neuralnet(YIELD~., data=train_, hidden=c(2,1), linear.output=TRUE,stepmax=1e7)
+plot(nn)
+pr.nn <- compute(nn, test_[,2:5])
+pr.nn_ <- pr.nn$net.result * (max(m12$YIELD) - min(m12$YIELD)) + min(m12$YIELD)
+test.r <- (test_$YIELD) * (max(m12$YIELD) - min(m12$YIELD)) + min(m12$YIELD)
+MSE.nn <- sum((test.r - pr.nn_)^2) / nrow(test_)
+sqrt(MSE.nn)
+```
+
