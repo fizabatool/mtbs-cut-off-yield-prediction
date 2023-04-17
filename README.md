@@ -1,4 +1,4 @@
-This is my final year project. I completed it along ith my 3 other team members.
+This is my final year project. I completed it along with my 3 other team members.
 We predicted the cut off yield for marketable treasurey bills and pakistan investment bonds for all the tenors. 
 Collected the data for cutt off yields and other independent factors like oil prices, exchange rate and so on.
 Performed data cleaning and filteration.
